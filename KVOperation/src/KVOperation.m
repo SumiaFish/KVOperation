@@ -110,13 +110,18 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
     }
     
     _willCallback = YES;
-    [super cancel];
     __weak typeof(self) ws = self;
     [self.delegate onComplete:self done:^{
+        [ws super_calcel];
         ws._isFinished = YES;
+        
     }];
     
     dispatch_semaphore_signal(_sem);
+}
+
+- (void)super_calcel {
+    [super cancel];
 }
 
 - (void)finish {
