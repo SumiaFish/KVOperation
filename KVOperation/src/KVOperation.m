@@ -51,7 +51,7 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
 @implementation KVOperation
 
 - (void)dealloc {
-    NSLog(@"KVOperation dealloc~");
+    KVQLog(@"KVOperation dealloc~");
 }
 
 - (void)set_isExecuting:(BOOL)isExecuting {
@@ -88,6 +88,9 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
 }
 
 - (void)start {
+    
+    NSAssert(self.delegate && self.queue, @"You do not have to start manually, please add the operation to the queue, which is responsible for starting the call");
+    
     dispatch_semaphore_wait(_todosem, DISPATCH_TIME_FOREVER);
     
     if (self.isFinished || self.isExecuting) {
@@ -110,12 +113,16 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
     }
     
     _willCallback = YES;
-    __weak typeof(self) ws = self;
-    [self.delegate onComplete:self done:^{
-        [ws super_calcel];
-        ws._isFinished = YES;
-        
-    }];
+    if (self.delegate) {
+        __weak typeof(self) ws = self;
+        [self.delegate onComplete:self done:^{
+            [ws super_calcel];
+            ws._isFinished = YES;
+        }];
+    } else {
+        [self super_calcel];
+        self._isFinished = YES;
+    }
     
     dispatch_semaphore_signal(_sem);
 }
@@ -133,10 +140,14 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
     }
     
     _willCallback = YES;
-    __weak typeof(self) ws = self;
-    [self.delegate onComplete:self done:^{
-        ws._isFinished = YES;
-    }];
+    if (self.delegate) {
+        __weak typeof(self) ws = self;
+        [self.delegate onComplete:self done:^{
+            ws._isFinished = YES;
+        }];
+    } else {
+        self._isFinished = YES;
+    }
     
     dispatch_semaphore_signal(_sem);
 }
@@ -231,6 +242,8 @@ typedef NS_ENUM(NSInteger, KVOperationTaskMode) {
     }
     
     dispatch_queue_t res = _map[@(_queueTag%KVQueuesLimit)];
+    NSHashTable<NSObject *> *set = _tokens[@(_queueTag)];
+    [set addObject:token];
     [self offsetTag];
     return res;
 }
@@ -330,16 +343,19 @@ static BOOL KVQueuesManagerInitFlag = NO;
 {
     @private NSOperationQueue *_queue;
     @private dispatch_semaphore_t _sem;
+    @private dispatch_semaphore_t _completesem;
 }
 
-@end
+@property (copy, nonatomic, nullable) void (^ complete) (KVOperationQueue *op);
+@property (assign, nonatomic) BOOL isCompleted;
 
+@end
 
 @implementation KVOperationQueue
 
 - (void)dealloc {
     [NSNotificationCenter.defaultCenter removeObserver:self];
-    NSLog(@"KVOperationQueue dealloc~");
+    KVQLog(@"KVOperationQueue dealloc~");
 }
 
 - (instancetype)init {
@@ -355,6 +371,7 @@ static BOOL KVQueuesManagerInitFlag = NO;
         }];
         
         _sem = dispatch_semaphore_create(1);
+        _completesem = dispatch_semaphore_create(1);
         _queue = [[NSOperationQueue alloc] init];
         _queue.maxConcurrentOperationCount = KVQueuesLimit;
     }
@@ -369,12 +386,34 @@ static BOOL KVQueuesManagerInitFlag = NO;
     return _sem;
 }
 
-- (void)addOperation:(KVOperation *)op {
+- (void)addOperations:(NSArray<KVOperation *> *)ops {
+    
+    if (!ops.count) {
+        return;
+    }
     
     dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
-    op.delegate = self;
-    op.queue = self;
-    [_queue addOperation:op];
+
+    NSMutableArray<KVOperation *> *newOps = [[NSMutableArray alloc] initWithArray:ops];
+    [newOps enumerateObjectsUsingBlock:^(KVOperation * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        if (obj.isFinished) {
+            // 被取消或已完成的操作
+            KVQLog(@"该操作已完成或取消，不能添加到队列");
+            [newOps removeObject:obj];
+            return;
+        }
+    }];
+    if (!newOps.count) {
+        dispatch_semaphore_signal(_sem);
+        return;
+    }
+    
+    [newOps enumerateObjectsUsingBlock:^(KVOperation * _Nonnull obj, NSUInteger idx, BOOL * _Nonnull stop) {
+        obj.delegate = self;
+        obj.queue = self;
+    }];
+    [self resetComplete];
+    [_queue addOperations:newOps waitUntilFinished:NO];
     dispatch_semaphore_signal(_sem);
     
 }
@@ -383,6 +422,7 @@ static BOOL KVQueuesManagerInitFlag = NO;
     
     dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
     if (_queue.isSuspended == isSuspended) {
+        dispatch_semaphore_signal(_sem);
         return;
     }
     _queue.suspended = isSuspended;
@@ -394,7 +434,47 @@ static BOOL KVQueuesManagerInitFlag = NO;
     
     dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
     [_queue cancelAllOperations];
+    [self notifiComplete];
     dispatch_semaphore_signal(_sem);
+    
+}
+
+- (void)completeTask:(void (^)(KVOperationQueue * _Nonnull))task {
+    
+    dispatch_semaphore_wait(_completesem, DISPATCH_TIME_FOREVER);
+    self.complete = task;
+    dispatch_semaphore_signal(_completesem);
+    
+}
+
+- (void)resetComplete {
+    
+    dispatch_semaphore_wait(_completesem, DISPATCH_TIME_FOREVER);
+    if (self.isCompleted) {
+        self.isCompleted = NO;
+    }
+    dispatch_semaphore_signal(_completesem);
+    
+}
+
+- (void)notifiComplete {
+    
+    dispatch_semaphore_wait(_completesem, DISPATCH_TIME_FOREVER);
+    
+    if (self.isCompleted) {
+        dispatch_semaphore_signal(_completesem);
+        return;
+    }
+
+    if (_queue.operationCount == 0) {
+        if (self.complete) {
+            dispatch_async([[KVQueuesManager shared] getQueue:(KVOperationTaskMode_Complete)], ^{
+                self.complete(self);
+            });
+        }
+        self.isCompleted = YES;
+    }
+    dispatch_semaphore_signal(_completesem);
     
 }
 
@@ -409,20 +489,30 @@ static BOOL KVQueuesManagerInitFlag = NO;
 }
 
 - (void)onComplete:(KVOperation *)op done:(void (^)(void))done {
+    __weak typeof(self) ws = self;
     if (op.complete) {
         if (op.isCompleteOnMainQueue) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 op.complete(op);
                 done();
+                dispatch_semaphore_wait(ws.sem, DISPATCH_TIME_FOREVER);
+                [ws notifiComplete];
+                dispatch_semaphore_signal(ws.sem);
             });
         } else {
             dispatch_async([[KVQueuesManager shared] getQueue:(KVOperationTaskMode_Complete)], ^{
                 op.complete(op);
                 done();
+                dispatch_semaphore_wait(ws.sem, DISPATCH_TIME_FOREVER);
+                [ws notifiComplete];
+                dispatch_semaphore_signal(ws.sem);
             });
         }
     } else {
         done();
+        dispatch_semaphore_wait(_sem, DISPATCH_TIME_FOREVER);
+        [ws notifiComplete];
+        dispatch_semaphore_signal(_sem);
     }
 }
 
@@ -443,3 +533,18 @@ static BOOL KVQueuesManagerInitFlag = NO;
 
 @end
 
+@implementation KVOperationQueue (Convenient)
+
++ (instancetype)queueWithOperations:(NSArray<KVOperation *> *)ops {
+    KVOperationQueue *queue = [[KVOperationQueue alloc] init];
+    [queue addOperations:ops];
+    return queue;
+}
+
++ (KVOperation *)operationWithTodo:(void (^)(KVOperation * _Nonnull))todo complete:(void (^)(KVOperation * _Nonnull))complete {
+    KVOperation *op = [[KVOperation alloc] init];
+    [[op todoTask:todo] completeTask:complete];
+    return op;
+}
+
+@end

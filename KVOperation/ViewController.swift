@@ -16,7 +16,7 @@ class ViewController: UIViewController {
     
     var data: [Model] = []
     
-    var idx: Int = 0
+    var count: Int = 0
     var link: CADisplayLink?
     let queue = KVQ()
     
@@ -53,7 +53,7 @@ class ViewController: UIViewController {
     
     
     @objc func run() {
-        self.lable.text = "\(idx)"
+        self.lable.text = "\(count)"
     }
     
     func test() {
@@ -70,7 +70,7 @@ class ViewController: UIViewController {
         
         let t1 = Date().timeIntervalSince1970
         
-        let count = 100000
+        let count = 10000
         
         
         /**
@@ -79,45 +79,61 @@ class ViewController: UIViewController {
         OC:  耗时: 41.33598494529724
          搞不懂！怎么差这么多
          */
-        for i in 0..<count {
-
-            let op = KVOperation()
-            op.todoTask { (op) in
-                print("subOp begin i:\(i), thred: \(Thread.current)")
-                op.finish()
-            }.completeTask { (op) in
-
-                self.idx = i
-                print("subOp end i:\(i), thred: \(Thread.current)")
-                if i == count-1 {
-                    print("耗时: \(Date().timeIntervalSince1970-t1)")
-                }
-            }
-
-            queue.add(op)
-
+        
+        KVQ.synchronized(self) {
+            self.count = 0
         }
         
-        return
+        queue.completeTask { (queue) in
+            print("耗时: \(Date().timeIntervalSince1970-t1)")
+            
+//            KVQ.synchronized(self) {
+//                assert(self.count == count, "有bug")
+//            }
+            
+            KVQ.synchronized(self) {
+                assert(self.data.count == 0, "有bug")
+            }
+        }
+        
+        var ops: [KVOperation] = []
+        
+//        for i in 0..<count {
+//            let op = KVQ.operation(todo: { (op) in
+//                print("subOp begin i:\(i), thred: \(Thread.current)")
+//                op.finish()
+//            }) { (op) in
+//                print("subOp end i:\(i), thred: \(Thread.current)")
+//                KVQ.synchronized(self) {
+//                    self.count += 1
+//                    print("count: \(self.count), thred: \(Thread.current)")
+//                }
+//            }
+//            ops.append(op)
+//        }
+//        queue.add(ops)
         
         
         for _ in 0..<count {
-            
             let op = KVOperation()
             op.todoTask { (op) in
-                op.finish()
-            }.completeTask { (op) in
-
                 KVQ.synchronized(self) {
                     let m = Model()
-                    m.test()
                     self.data.append(m)
                 }
+                op.finish()
+            }.completeTask { (op) in
+                KVQ.synchronized(self) {
+                    if self.data.count > 0 {
+                        self.data.remove(at: 0)
+                    }
+                }
             }
-
-            queue.add(op)
-            
+            ops.append(op)
         }
+        queue.add(ops)
+        
+        return
                 
         for _ in 0..<count {
             
@@ -135,7 +151,7 @@ class ViewController: UIViewController {
                 
             }
 
-            queue.add(op)
+//            queue.add(op)
             
         }
 
@@ -183,7 +199,7 @@ class Model : NSObject {
 
             }
 
-            queue.add(op)
+//            queue.add(op)
         }
         
         for i in 0..<count {
@@ -214,7 +230,7 @@ class Model : NSObject {
 
             }
 
-            queue.add(op)
+//            queue.add(op)
         }
 
     }
