@@ -8,6 +8,8 @@
 
 import UIKit
 
+typealias KVQ = KVOperationQueue
+
 class ViewController: UIViewController {
 
     @IBOutlet weak var lable: UILabel!
@@ -68,28 +70,35 @@ class ViewController: UIViewController {
         
         let t1 = Date().timeIntervalSince1970
         
-        let count = 100
+        let count = 100000
         
         
+        /**
+         count == 100000
+        Swift:     耗时: 9.329712152481079
+        OC:  耗时: 41.33598494529724
+         搞不懂！怎么差这么多
+         */
+        for i in 0..<count {
+
+            let op = KVOperation()
+            op.todoTask { (op) in
+                print("subOp begin i:\(i), thred: \(Thread.current)")
+                op.finish()
+            }.completeTask { (op) in
+
+                self.idx = i
+                print("subOp end i:\(i), thred: \(Thread.current)")
+                if i == count-1 {
+                    print("耗时: \(Date().timeIntervalSince1970-t1)")
+                }
+            }
+
+            queue.add(op)
+
+        }
         
-//        for i in 0..<count {
-//
-//            let op = KVOperation()
-//            op.todoTask { (op) in
-//                print("subOp begin i:\(i), thred: \(Thread.current)")
-//                op.finish()
-//            }.completeTask { (op) in
-//
-//                self.idx = i
-//                print("subOp end i:\(i), thred: \(Thread.current)")
-//                if i == count-1 {
-//                    print("耗时: \(Date().timeIntervalSince1970-t1)")
-//                }
-//            }
-//
-//            queue.addOperation(op)
-//
-//        }
+        return
         
         
         for _ in 0..<count {
@@ -106,7 +115,7 @@ class ViewController: UIViewController {
                 }
             }
 
-            queue.addOperation(op)
+            queue.add(op)
             
         }
                 
@@ -126,7 +135,7 @@ class ViewController: UIViewController {
                 
             }
 
-            queue.addOperation(op)
+            queue.add(op)
             
         }
 
@@ -174,7 +183,7 @@ class Model : NSObject {
 
             }
 
-            queue.addOperation(op)
+            queue.add(op)
         }
         
         for i in 0..<count {
@@ -205,7 +214,7 @@ class Model : NSObject {
 
             }
 
-            queue.addOperation(op)
+            queue.add(op)
         }
 
     }

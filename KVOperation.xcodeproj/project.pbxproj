@@ -16,6 +16,7 @@
 		044D693E2479EF1100BF4A1B /* KVOperationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D693D2479EF1100BF4A1B /* KVOperationTests.swift */; };
 		044D69492479EF1100BF4A1B /* KVOperationUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D69482479EF1100BF4A1B /* KVOperationUITests.swift */; };
 		044D69582479EF2900BF4A1B /* Opreration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 044D69572479EF2900BF4A1B /* Opreration.swift */; };
+		044D695C2479F25D00BF4A1B /* KVOperation.m in Sources */ = {isa = PBXBuildFile; fileRef = 044D695B2479F25D00BF4A1B /* KVOperation.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -51,6 +52,9 @@
 		044D69482479EF1100BF4A1B /* KVOperationUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KVOperationUITests.swift; sourceTree = "<group>"; };
 		044D694A2479EF1100BF4A1B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		044D69572479EF2900BF4A1B /* Opreration.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Opreration.swift; sourceTree = "<group>"; };
+		044D69592479F25C00BF4A1B /* KVOperation-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "KVOperation-Bridging-Header.h"; sourceTree = "<group>"; };
+		044D695A2479F25D00BF4A1B /* KVOperation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = KVOperation.h; sourceTree = "<group>"; };
+		044D695B2479F25D00BF4A1B /* KVOperation.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KVOperation.m; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -135,6 +139,9 @@
 			isa = PBXGroup;
 			children = (
 				044D69572479EF2900BF4A1B /* Opreration.swift */,
+				044D695A2479F25D00BF4A1B /* KVOperation.h */,
+				044D695B2479F25D00BF4A1B /* KVOperation.m */,
+				044D69592479F25C00BF4A1B /* KVOperation-Bridging-Header.h */,
 			);
 			path = src;
 			sourceTree = "<group>";
@@ -207,6 +214,7 @@
 				TargetAttributes = {
 					044D69222479EF0D00BF4A1B = {
 						CreatedOnToolsVersion = 11.4.1;
+						LastSwiftMigration = 1140;
 					};
 					044D69382479EF1100BF4A1B = {
 						CreatedOnToolsVersion = 11.4.1;
@@ -272,6 +280,7 @@
 			files = (
 				044D692B2479EF0D00BF4A1B /* ViewController.swift in Sources */,
 				044D69272479EF0D00BF4A1B /* AppDelegate.swift in Sources */,
+				044D695C2479F25D00BF4A1B /* KVOperation.m in Sources */,
 				044D69582479EF2900BF4A1B /* Opreration.swift in Sources */,
 				044D69292479EF0D00BF4A1B /* SceneDelegate.swift in Sources */,
 			);
@@ -446,6 +455,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = KVOperation/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
@@ -455,6 +465,8 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.kevin.app.KVOperation.KVOperation;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "KVOperation/src/KVOperation-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -464,6 +476,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
 				INFOPLIST_FILE = KVOperation/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 9.0;
@@ -473,6 +486,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.kevin.app.KVOperation.KVOperation;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_OBJC_BRIDGING_HEADER = "KVOperation/src/KVOperation-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
