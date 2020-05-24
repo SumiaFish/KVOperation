@@ -16,7 +16,7 @@ class ViewController: UIViewController {
     
     var idx: Int = 0
     var link: CADisplayLink?
-    let queue = KVOperationQueue()
+    let queue = KVQ()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -99,7 +99,7 @@ class ViewController: UIViewController {
                 op.finish()
             }.completeTask { (op) in
 
-                KVOperationQueue.synchronized(self) {
+                KVQ.synchronized(self) {
                     let m = Model()
                     m.test()
                     self.data.append(m)
@@ -117,7 +117,7 @@ class ViewController: UIViewController {
                 op.finish()
             }.completeTask { (op) in
 
-                KVOperationQueue.synchronized(self) {
+                KVQ.synchronized(self) {
                     if self.data.count > 0 {
                         self.data.remove(at: 0)
                     }
@@ -141,7 +141,7 @@ class ViewController: UIViewController {
 class Model : NSObject {
 
     var data: [Int] = []
-    let queue = KVOperationQueue()
+    let queue = KVQ()
 
     deinit {
         print("Model dealloc~")
@@ -167,7 +167,7 @@ class Model : NSObject {
                 op.finish()
             }.completeTask { (op) in
                 
-                KVOperationQueue.synchronized(self) {
+                KVQ.synchronized(self) {
                     self.data.append(i)
                     print("count: \(self.data.count)")
                 }
@@ -186,7 +186,7 @@ class Model : NSObject {
             }.completeTask { (op) in
                 
                 // 加锁
-                KVOperationQueue.synchronized(self) {
+                KVQ.synchronized(self) {
                     if self.data.count > 0 {
                         self.data.remove(at: 0)
                     }

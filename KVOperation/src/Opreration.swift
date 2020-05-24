@@ -365,4 +365,4 @@ final class KVOperationQueue: NSObject, KVOperationDelegate {
     
 }
 
-let KVQ = KVOperationQueue()
+typealias KVQ = KVOperationQueue
